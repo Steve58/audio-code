@@ -14,6 +14,12 @@
         var codeHzButtonsA = [];
         var codeHzButtonsB = [];
         
+        var messageInTextbox = document.querySelector("#messageIn");
+        var messageOutTextbox = document.querySelector("#messageOut");
+        var sendButton = document.querySelector("#send");
+        var bandARadio = document.querySelector("input[type=radio][name=band][value=A]");
+        var bandBRadio = document.querySelector("input[type=radio][name=band][value=B]");
+        
         var initialiseButton = document.querySelector("#gameButtons #initialise");
         initialiseButton.addEventListener("click", function (event) {
             g58.game.canvas.clear();
@@ -32,12 +38,25 @@
             analyseIntervalId = setInterval(function () {
                 var audioData = e58.audio.runAnalyser();
                 
-                audioData.encodedDataA.forEach(function (value, i) {
-                    codeHzButtonsA[i].className = value ? "code-hz-on" : "code-hz-off";
-                });
-                audioData.encodedDataB.forEach(function (value, i) {
-                    codeHzButtonsB[i].className = value ? "code-hz-on" : "code-hz-off";
-                });
+                var receivedMessage;
+                if (bandARadio.checked) {
+                    audioData.encodedDataB.forEach(function (value, i) {
+                        codeHzButtonsB[i].className = value ? "code-hz-on" : "code-hz-off";
+                    });
+                    e58.audio.receivePacket(audioData.encodedDataB, "B");
+                    receivedMessage = e58.audio.getMessage("B");
+                }
+                else {
+                    audioData.encodedDataA.forEach(function (value, i) {
+                        codeHzButtonsA[i].className = value ? "code-hz-on" : "code-hz-off";
+                    });
+                    e58.audio.receivePacket(audioData.encodedDataA, "A");
+                    receivedMessage = e58.audio.getMessage("A");
+                }
+                
+                if (receivedMessage) {
+                    messageInTextbox.value = receivedMessage.toString();
+                }
                                 
                 g58.game.canvas.clear();
                 g58.game.canvas.startContext(s58.rgba(50), s58.rgba(50), 2);
@@ -69,7 +88,7 @@
                     }
                 });                
                 g58.game.canvas.stroke();
-            }, 200);
+            }, 20);
         });
         
         var stopButton = document.querySelector("#gameButtons #stop");
@@ -78,33 +97,14 @@
                 clearInterval(analyseIntervalId);
             }
         });
-        
-        var frequencyOneInput = document.querySelector("#gameButtons #frequencyOne");
-        var signalOneButton = document.querySelector("#gameButtons #signalOne");
-        signalOneButton.addEventListener("click", function (event) {
-            e58.audio.runOscillator(frequencyOneInput.value, 1.0);
-        });
-        
-        var frequencyTwoInput = document.querySelector("#gameButtons #frequencyTwo");
-        var signalTwoButton = document.querySelector("#gameButtons #signalTwo");
-        signalTwoButton.addEventListener("click", function (event) {
-            e58.audio.runOscillator(frequencyTwoInput.value, 1.0);
-        });
-        
-        var signalBothButton = document.querySelector("#gameButtons #signalBoth");
-        signalBothButton.addEventListener("click", function (event) {
-            e58.audio.runOscillator(frequencyOneInput.value, 1.0);
-            e58.audio.runOscillator(frequencyTwoInput.value, 1.0);
-        });
-        
+                
         var codeHzButtonsADiv = document.querySelector("#codeHzButtonsA");
         e58.audio.codeHzPairsA.forEach(function (codeHzPair, i) {
             var codeHzButton = codeHzButtonsADiv.appendChild(document.createElement("button"));
             codeHzButton.innerHTML = "A" + i;
             codeHzButton.className = "code-hz-off";
             codeHzButton.addEventListener("click", function (event) {
-                e58.audio.runOscillator(codeHzPair[0]);
-                e58.audio.runOscillator(codeHzPair[1]);
+                e58.audio.runCodeHz(i, "A");
             });
             codeHzButtonsA.push(codeHzButton);
         });
@@ -115,16 +115,15 @@
             codeHzButton.innerHTML = "B" + i;
             codeHzButton.className = "code-hz-off";
             codeHzButton.addEventListener("click", function (event) {
-                e58.audio.runOscillator(codeHzPair[0]);
-                e58.audio.runOscillator(codeHzPair[1]);
+                e58.audio.runCodeHz(i, "B");
             });
             codeHzButtonsB.push(codeHzButton);
         });
-        
-        var devDiv1 = document.querySelector("#devDiv1");
-        devDiv1.addEventListener("click", function (event) {
-            e58.audio.runOscillator(frequencyOneInput.value, 1.0);
-            e58.audio.runOscillator(frequencyTwoInput.value, 1.0);
+                
+        sendButton.addEventListener("click", function (event) {
+            e58.audio.sendMessage(
+                (messageOutTextbox.value || "").split(","),
+                bandARadio.checked ? "A" : "B");
         });
     });
 })();

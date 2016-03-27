@@ -15,25 +15,25 @@
 <body>
 <div id="gamePageWrapper">
     <div id="gameButtons">
-        <button id="initialise">initialise</button>
-        <input id="minDecibels" type="number" min="1" max="5000" step="1" value="200"/>
-        <input id="maxDecibels" type="number" min="1" max="5000" step="1" value="10"/>
-        <button id="start">start</button>
-        <button id="stop">stop</button>
-        <br/>
-        <button id="signalOne">signal one</button>
-        <input id="frequencyOne" type="number" min="200" max="5000" step="100" value="800"/>
-        <button id="signalTwo">signal two</button>
-        <input id="frequencyTwo" type="number" min="200" max="5000" step="100" value="1600"/>
-        <button id="signalBoth">signal both</button>
-        <div id="codeHzButtons">
-            <div id="codeHzButtonsA"></div>
-            <div id="codeHzButtonsB"></div>
+        <div>
+            <button id="initialise">initialise</button>
+            <input id="minDecibels" type="number" min="1" max="5000" step="1" value="200" hidden/>
+            <input id="maxDecibels" type="number" min="1" max="5000" step="1" value="10" hidden/>
+            <button id="start">start</button>
+            <button id="stop">stop</button>
+        </div>
+        <div id="codeHzButtonsA"></div>
+        <div id="codeHzButtonsB"></div>
+        <div>
+            <label><input type="radio" name="band" value="A" checked/>A</label>
+            <label><input type="radio" name="band" value="B"/>B</label>
+            <input id="messageIn" type="text" disabled/>
+            <input id="messageOut" type="text"/>
+            <button id="send">send</button>
         </div>
     </div>
     <canvas id="gameCanvas" width="1" height="1"></canvas>
     <video id="webcamVideo" width="100" height="75"></video>
-    <div id="devDiv1"></div>
 </div>
 </body>
 </html>

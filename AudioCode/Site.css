@@ -77,13 +77,21 @@ p a {
 
 #gameButtons button {
     margin: 10px;
-    font-size: 20px;
+    font-size: 40px;
+    font-weight: bold;
 }
 
-#gameButtons input[type=number] {
+#gameButtons input[type=number],
+#gameButtons input[type=text] {
     margin: 10px;
-    font-size: 20px;
-    max-width: 80px;
+    font-size: 40px;
+    max-width: 150px;
+}
+
+#gameButtons input[type=radio] {
+    height: 40px;
+    vertical-align: middle;
+    margin: 0 5px;
 }
 
 #gameCanvas {
@@ -116,28 +124,11 @@ select {
     z-index: 200;
 }
 
-#gameButtons button.code-hz-off,
-#gameButtons button.code-hz-on {
-    font-weight: bold;
-    font-size: 60px;
-}
-
 .code-hz-off {
 }
 
 .code-hz-on {
     color: #c33;
-}
-
-#devDiv1 {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 20%;
-    font-size: 40px;
-    background-color: #228;
-    z-index: 800;
 }
 
 /* 
