@@ -13,21 +13,29 @@
 111 7   data    11  3
 
 encode number characters as two data packets
-00 00   00   0   number character
-00 01   01   1   number character
-00 10   02   2   number character
-00 11   03   3   number character
-01 00   10   4   number character
-01 01   11   5   number character
-01 10   12   6   number character
-01 11   13   7   number character
-10 00   20   8   number character
-10 01   21   9   number character
-10 10   22   10  decimal point
-10 11   23   11  E positive
-11 00   30   12  E negative
-11 01   31   13  next number null
-11 10   32   14  next number positive
-11 11   33   15  next number negative
+00 00   00  44   0   number character
+00 01   01  45   1   number character
+00 10   02  46   2   number character
+00 11   03  47   3   number character
+01 00   10  54   4   number character
+01 01   11  55   5   number character
+01 10   12  56   6   number character
+01 11   13  57   7   number character
+10 00   20  64   8   number character
+10 01   21  65   9   number character
+10 10   22  66   10  decimal point
+10 11   23  67   11  E positive
+11 00   30  74   12  E negative
+11 01   31  75   13  next number null
+11 10   32  76   14  next number positive
+11 11   33  77   15  next number negative
 
+
+
+001 bit 0
+010 bit 1
+100 next bit
+
+0-9 numbers
+15  next message
 

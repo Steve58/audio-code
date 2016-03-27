@@ -13,8 +13,10 @@
     
     var i
     
-    var packetIntervalMs = 500;
-    var packetDurationMs = 400;
+    var packetIntervalMs = 1000;
+    var packetDurationMs = 900;
+    
+    var packetCountThreshold = 6;
     
     var hz, hz0, hz2;
     e58.audio.hzPerBin = 21.55;
@@ -228,7 +230,10 @@
             testBits.push(Boolean(bit & packet));
         });
         
-        // e58.audio.receivePacket(testBits, (band == "A") ? "B" : "A");
+        var i;
+        for (i = 0; i < packetCountThreshold * 2; i++) {
+            e58.audio.receivePacket(testBits, (band == "A") ? "B" : "A");
+        }
     }
     
     function encodeMessage(numberArray) {
@@ -300,26 +305,33 @@
             return;
         }
         
-        var receivingMessage = (band == "A") ? e58.audio.receivingMessageA : e58.audio.receivingMessageB;
-        if (receivingMessage.length && receivingMessage[receivingMessage.length - 1] == packetValue) {
-            return;
-        }
+        // var receivingMessage = (band == "A") ? e58.audio.receivingMessageA : e58.audio.receivingMessageB;
+        // if (receivingMessage.length && receivingMessage[receivingMessage.length - 1] == packetValue) {
+            // return;
+        // }
         
         console.log("Receiving packet on band " + band);
         console.log(encodedData, packetValue);
         
+        var message;
         if (band == "A") {
             e58.audio.receivingMessageA.push(packetValue);
-            if (packetValue == e58.audio.packets.end) {
-                e58.audio.receivedMessageA = decodeMessage(e58.audio.receivingMessageA, band);
+            if (e58.audio.receivingMessageA.filter(p => p == e58.audio.packets.end).length > packetCountThreshold) {
+                message = decodeMessage(e58.audio.receivingMessageA, band);
                 e58.audio.receivingMessageA = [];
+                if (message) {
+                    e58.audio.receivedMessageA = message;
+                }
             }
         }
         else {
             e58.audio.receivingMessageB.push(packetValue);
-            if (packetValue == e58.audio.packets.end) {
-                e58.audio.receivedMessageB = decodeMessage(e58.audio.receivingMessageB, band);
+            if (e58.audio.receivingMessageB.filter(p => p == e58.audio.packets.end).length > packetCountThreshold) {
+                message = decodeMessage(e58.audio.receivingMessageB, band);
                 e58.audio.receivingMessageB = [];
+                if (message) {
+                    e58.audio.receivedMessageB = message;
+                }
             }
         }
     };
@@ -334,9 +346,30 @@
     
     function decodeMessage(message, band) {
         var i;
-        var packets = message.filter(function (packet) {
+        
+        i = checkForWeakPackets(message);
+        while (i && i >= 0) {
+            message.splice(i, 1);
+            i = checkForWeakPackets(message);
+        }
+        
+        var packets = [];
+        message.forEach(function (packet, i) {
+            if (i == 0 || packet != packets[packets.length - 1]) {
+                packets.push(packet);
+            }
+        });
+        
+        packets = packets.filter(function (packet) {
             return [e58.audio.packets.start, e58.audio.packets.next, e58.audio.packets.end].indexOf(packet) < 0;
         });
+        
+        if (!packets.length) {
+            return null;
+        }
+        
+        console.log("Filtered packets ");
+        packets.forEach(p => console.log(p));
         
         var numbersString = "";
         for (i = 0; i < packets.length; i += 2) {
@@ -352,6 +385,38 @@
         console.log(numberArray);
         
         return numberArray;
+    }
+    
+    function checkForStrongPackets(packets, packetValue) {
+        var i;
+        for (i = 0; i < packets.length; i++) {
+            if (packets[i] == packetValue
+                    && getNeighbours(packets, i).filter(p => p == packetValue).length >= packetCountThreshold) {
+                return i;
+            }
+        }
+        return null;
+    }
+    
+    function checkForWeakPackets(packets) {
+        var i;
+        for (i = 0; i < packets.length; i++) {
+            if (getNeighbours(packets, i).filter(p => p == packets[i]).length < packetCountThreshold) {
+                return i;
+            }
+        }
+        return null;
+    }
+    
+    function getNeighbours(packets, index) {
+        var i;
+        var neighbours = [];
+        for (i = index - packetCountThreshold; i < index + packetCountThreshold; i++) {
+            if (i >= 0 && i < packets.length) {
+                neighbours.push(packets[i]);
+            }
+        }
+        return neighbours;
     }
     
     function decodePacketPair(packetPair) {
