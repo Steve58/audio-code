@@ -3,11 +3,10 @@
 
 "use strict";
 
-window.e58 = window.e58 || {};
-
-e58.canvas = {};
-
 (function () {
+    window.e58 = window.e58 || {};
+    e58.canvas = e58.canvas || {};
+
 	function _Canvas(options) {
 		var _instance = this;
         _instance.className = "e58.canvas";
@@ -53,7 +52,7 @@ e58.canvas = {};
         };
 
         _instance.setLineWidth = function (lineWidth) {
-            _instance.context.lineWidth = e58.integerPixels ? Math.ceil(lineWidth): lineWidth;
+            _instance.context.lineWidth = lineWidth;
         };
 
         _instance.setLineColour = function (strokeStyle) {
@@ -125,11 +124,9 @@ e58.canvas = {};
         };
 
         function getDrawPoint(x, y) {
-            var drawX = _instance.drawOrigin.x + x;
-            var drawY = _instance.drawOrigin.y - y;
             return {
-                x: e58.utils.pixel(drawX),
-                y: e58.utils.pixel(drawY)
+                x: _instance.drawOrigin.x + x,
+                y: _instance.drawOrigin.y - y
             };
         }
 

@@ -80,6 +80,12 @@ p a {
     font-size: 20px;
 }
 
+#gameButtons input[type=number] {
+    margin: 10px;
+    font-size: 20px;
+    max-width: 80px;
+}
+
 #gameCanvas {
     position: fixed;
     top: 0;
@@ -108,6 +114,30 @@ select {
     font-size: 30px;
     font-family: Impact, Charcoal, sans-serif;
     z-index: 200;
+}
+
+#gameButtons button.code-hz-off,
+#gameButtons button.code-hz-on {
+    font-weight: bold;
+    font-size: 60px;
+}
+
+.code-hz-off {
+}
+
+.code-hz-on {
+    color: #c33;
+}
+
+#devDiv1 {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 20%;
+    font-size: 40px;
+    background-color: #228;
+    z-index: 800;
 }
 
 /* 
