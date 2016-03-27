@@ -37,5 +37,6 @@ encode number characters as two data packets
 100 next bit
 
 0-9 numbers
+14  next number
 15  next message
 

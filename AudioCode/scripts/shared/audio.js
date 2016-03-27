@@ -13,10 +13,15 @@
     
     var i
     
-    var packetIntervalMs = 1000;
-    var packetDurationMs = 900;
+    var codes = {
+        nextNumber: 14,
+        nextMessage: 15
+    };
     
-    var packetCountThreshold = 6;
+    var packetIntervalMs = 800;
+    var packetDurationMs = 700;
+    
+    // var packetCountThreshold = 5;
     
     var hz, hz0, hz2;
     e58.audio.hzPerBin = 21.55;
@@ -61,28 +66,6 @@
                 break;
         }
     }
-    
-    e58.audio.packets = {
-        start: 1,
-        next: 2,
-        end: 3,
-        dataByValue: [4, 5, 6, 7],
-        dataByPacketValue: []
-    };
-    e58.audio.packets.dataByPacketValue[4] = 0;
-    e58.audio.packets.dataByPacketValue[5] = 1;
-    e58.audio.packets.dataByPacketValue[6] = 2;
-    e58.audio.packets.dataByPacketValue[7] = 3;
-    
-    e58.audio.numberPacketPairs = {
-        // 0-9: integer characters
-        dot: 10,
-        ePlus: 11,
-        eMinus: 12,
-        nextNull: 13,
-        nextPlus: 14,
-        nextMinus: 15
-    };
     
     e58.audio.sendingMessageA = [];
     e58.audio.sendingMessageB = [];
@@ -231,24 +214,26 @@
         });
         
         var i;
-        for (i = 0; i < packetCountThreshold * 2; i++) {
+        // for (i = 0; i < packetCountThreshold * 2; i++) {
             e58.audio.receivePacket(testBits, (band == "A") ? "B" : "A");
-        }
+        // }
     }
     
     function encodeMessage(numberArray) {
         var packets = [];
-        packets.push(e58.audio.packets.start);
+        packets.push(4);
         
         numberArray.forEach(function (number) {
             packets = packets.concat(encodeNumber(number));
         });
         
-        packets.push(e58.audio.packets.end);
+        packets = packets.concat(encode4bit(codes.nextMessage));
+        
+        packets.push(4);
         
         var i = checkAnyConsecutiveIdentical(packets);
         while (i != null) {
-            packets.splice(i, 0, e58.audio.packets.next);
+            packets.splice(i, 0, 4);
             i = checkAnyConsecutiveIdentical(packets)
         }
         
@@ -269,46 +254,44 @@
         var i, numberCharacter;
         var packets = [];
         if (number == null) {
-            packets = packets.concat(encodePacketPair(e58.audio.numberPacketPairs.nextNull));
+            packets = packets.concat(encode4bit(codes.nextNumber));
         }
         else {
             number = Number(number);
-            packets = packets.concat(encodePacketPair((number >= 0) ? e58.audio.numberPacketPairs.nextPlus : e58.audio.numberPacketPairs.nextMinus));
             var numberString = number.toString();
             for (i = 0; i < numberString.length; i++) {
                 numberCharacter = numberString[i];
-                if (numberCharacter == ".") {
-                    packets = packets.concat(encodePacketPair(e58.audio.numberPacketPairs.dot));
-                }
-                else { // (integer character 0-9)
-                    packets = packets.concat(encodePacketPair(Number(numberCharacter)));
-                }
+                packets = packets.concat(encode4bit(Number(numberCharacter)));
             }
+            packets = packets.concat(encode4bit(codes.nextNumber));
         }
         return packets;
     }
     
-    function encodePacketPair(value) {
-        var bits = [
-            8 & value ? 1 : 0,
-            4 & value ? 1 : 0,
-            2 & value ? 1 : 0,
-            1 & value ? 1 : 0];
+    function encode4bit(value) {
         return [
-            e58.audio.packets.dataByValue[parseInt("" + bits[0] + bits[1], 2)],
-            e58.audio.packets.dataByValue[parseInt("" + bits[2] + bits[3], 2)] ];
+            8 & value ? 2 : 1,
+            4 & value ? 2 : 1,
+            2 & value ? 2 : 1,
+            1 & value ? 2 : 1 ];
     }
     
     e58.audio.receivePacket = function (encodedData, band) {
-        var packetValue = decodeData(encodedData);
+        var packetValue = 0;        
+        encodedData.forEach(function (item, i) {
+            if (item) {
+                packetValue = [4, 2, 1][i];
+            }
+        });
+        
         if (packetValue == 0) {
             return;
         }
         
-        // var receivingMessage = (band == "A") ? e58.audio.receivingMessageA : e58.audio.receivingMessageB;
-        // if (receivingMessage.length && receivingMessage[receivingMessage.length - 1] == packetValue) {
-            // return;
-        // }
+        var receivingMessage = (band == "A") ? e58.audio.receivingMessageA : e58.audio.receivingMessageB;
+        if (receivingMessage.length && receivingMessage[receivingMessage.length - 1] == packetValue) {
+            return;
+        }
         
         console.log("Receiving packet on band " + band);
         console.log(encodedData, packetValue);
@@ -316,30 +299,26 @@
         var message;
         if (band == "A") {
             e58.audio.receivingMessageA.push(packetValue);
-            if (e58.audio.receivingMessageA.filter(p => p == e58.audio.packets.end).length > packetCountThreshold) {
-                message = decodeMessage(e58.audio.receivingMessageA, band);
+            message = decodeMessage(e58.audio.receivingMessageA, band);
+            if (message) {
                 e58.audio.receivingMessageA = [];
-                if (message) {
-                    e58.audio.receivedMessageA = message;
-                }
+                e58.audio.receivedMessageA = message;
             }
         }
         else {
             e58.audio.receivingMessageB.push(packetValue);
-            if (e58.audio.receivingMessageB.filter(p => p == e58.audio.packets.end).length > packetCountThreshold) {
-                message = decodeMessage(e58.audio.receivingMessageB, band);
+            message = decodeMessage(e58.audio.receivingMessageB, band);
+            if (message) {
                 e58.audio.receivingMessageB = [];
-                if (message) {
-                    e58.audio.receivedMessageB = message;
-                }
+                e58.audio.receivedMessageB = message;
             }
         }
     };
     
-    function decodeData(encodedData) {
+    function decode4bit(fourBitData) {
         var byteString = "";
-        encodedData.forEach(function (bit) {
-            byteString += bit ? "1" : "0";
+        fourBitData.forEach(function (bit) {
+            byteString += (bit == 2) ? "1" : "0";
         });
         return parseInt(byteString, 2);
     }
@@ -347,11 +326,11 @@
     function decodeMessage(message, band) {
         var i;
         
-        i = checkForWeakPackets(message);
-        while (i && i >= 0) {
-            message.splice(i, 1);
-            i = checkForWeakPackets(message);
-        }
+        // i = checkForWeakPackets(message);
+        // while (i && i >= 0) {
+            // message.splice(i, 1);
+            // i = checkForWeakPackets(message);
+        // }
         
         var packets = [];
         message.forEach(function (packet, i) {
@@ -360,8 +339,12 @@
             }
         });
         
+        if (packets[packets.length - 1] != 4) {
+            return null;
+        }
+        
         packets = packets.filter(function (packet) {
-            return [e58.audio.packets.start, e58.audio.packets.next, e58.audio.packets.end].indexOf(packet) < 0;
+            return packet != 4;
         });
         
         if (!packets.length) {
@@ -369,44 +352,40 @@
         }
         
         console.log("Filtered packets ");
-        packets.forEach(p => console.log(p));
+        console.log(packets);
         
-        var numbersString = "";
-        for (i = 0; i < packets.length; i += 2) {
-            numbersString += decodePacketPair([packets[i], packets[i + 1]]);
-        }
-        
-        var numberArray = [];
-        numbersString.replace(/^,/, "").split(",").forEach(function (numberString) {
-            numberArray.push(numberString == "null" ? null : Number(numberString));
-        });
-        
-        console.log("Received message on band " + band);
-        console.log(numberArray);
-        
-        return numberArray;
-    }
-    
-    function checkForStrongPackets(packets, packetValue) {
-        var i;
-        for (i = 0; i < packets.length; i++) {
-            if (packets[i] == packetValue
-                    && getNeighbours(packets, i).filter(p => p == packetValue).length >= packetCountThreshold) {
-                return i;
+        var numberString = "";
+        var numbers = [];
+        var fourBitValue;
+        for (i = 0; i < packets.length; i += 4) {
+            fourBitValue = decode4bit([packets[i], packets[i + 1], packets[i + 2], packets[i + 3]]);
+            switch(fourBitValue) {
+                case 15:
+                    console.log("Received message on band " + band);
+                    console.log(numbers);
+                    return numbers;
+                case 14:
+                    numbers.push(numberString ? Number(numberString) : null);
+                    numberString = "";
+                    break;
+                default:
+                    numberString += fourBitValue;
+                    break;
             }
         }
+        
         return null;
     }
-    
-    function checkForWeakPackets(packets) {
-        var i;
-        for (i = 0; i < packets.length; i++) {
-            if (getNeighbours(packets, i).filter(p => p == packets[i]).length < packetCountThreshold) {
-                return i;
-            }
-        }
-        return null;
-    }
+        
+    // function checkForWeakPackets(packets) {
+        // var i;
+        // for (i = 0; i < packets.length; i++) {
+            // if (getNeighbours(packets, i).filter(p => p == packets[i]).length < packetCountThreshold) {
+                // return i;
+            // }
+        // }
+        // return null;
+    // }
     
     function getNeighbours(packets, index) {
         var i;
@@ -418,25 +397,7 @@
         }
         return neighbours;
     }
-    
-    function decodePacketPair(packetPair) {
-        var value =
-            4 * e58.audio.packets.dataByPacketValue[packetPair[0]]
-            + e58.audio.packets.dataByPacketValue[packetPair[1]];
-        switch (value) {
-            case e58.audio.numberPacketPairs.dot:
-                return ".";
-            case e58.audio.numberPacketPairs.nextNull:
-                return ",null";
-            case e58.audio.numberPacketPairs.nextPlus:
-                return ",+0";
-            case e58.audio.numberPacketPairs.nextMinus:
-                return ",-0";
-            default:
-                return value;
-        }
-    }
-    
+        
     e58.audio.getMessage = function (band) {
         if (band == "A") {
             if (e58.audio.receivedMessageA) {
